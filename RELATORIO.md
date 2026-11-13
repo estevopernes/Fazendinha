@@ -36,6 +36,7 @@ fazendinha-projeto/
 │   ├── 60_build.js       ← desenho 2D de cocho, árvore, casa, celeiro (ícones/abertura)
 │   ├── 65_world.js       ← textura do chão (grama, caminhos, lago, flores) usada no 3D + desenhos 2D de cercas/decoração
 │   ├── 70_runtime.js     ← laço do jogo (frame), IA dos animais, cachorro, visitante/ladrão, efeitos, ícones
+│   ├── 72_modelos.js     ← modelos do Farm Pack (GERADO por tools/farmpack, não editar à mão)
 │   ├── 75_three.js       ← TODOS os modelos 3D, animações 3D e a camada 2D por cima (render/overlay)
 │   └── 80_ui.js          ← toques, lojas, celeiro, cash/Pix, vizinhos, visitas, colocação de itens, abertura, boot
 ├── vendor/
@@ -49,7 +50,7 @@ fazendinha-projeto/
 ```
 
 **Importante:** `index.html` = concatenação, nesta ordem, de
-`00_head.html 10_core.js 30_cam.js 40_plants.js 50_animals.js 60_build.js 65_world.js 70_runtime.js 75_three.js 80_ui.js`.
+`00_head.html 10_core.js 30_cam.js 40_plants.js 50_animals.js 60_build.js 65_world.js 70_runtime.js 72_modelos.js 75_three.js 80_ui.js`.
 Rodar `./build.sh` gera um `dist-index.html` idêntico ao `index.html` (conferido por MD5). Edite em `src/` e gere de novo.
 Todo o JS roda dentro de uma única IIFE (`(()=>{ 'use strict'; ... })()`), então as funções não ficam no `window`.
 
@@ -102,6 +103,7 @@ Todo o JS roda dentro de uma única IIFE (`(()=>{ 'use strict'; ... })()`), ent�
 | HUD e ferramentas | `80_ui.js` | `hud()`, `buildTools()`, `toast()`, `openSheet()`, `closeSheet()` |
 | Câmera, zoom, arrastar, toque→mundo | `30_cam.js` | `initThree()`, `updCamera()`, `iso()` (mundo→tela), `inv()` (tela→mundo), `setZoom()`, `panTo()`, `centerOn()`, `resize()` |
 | Modelos 3D | `75_three.js` | `mkHouse`, `mkBarn`, `mkTree`, `mkBush`, `mkRock`, `mkDogHouse`, `mkPen`, `mkTrough`, `mkDeco`, `mkCrop(k,estágio)`, `mkWeed`, `mkAnimal3`, `mkDog3`, `mkPerson3`, `mkEgg`, `build3DStatic()` |
+| Modelos do Farm Pack (casa, celeiro, árvores, cercas, galinheiro, estábulo, cocho, balde, poço, carrinho, moinho, flores, silo, caixa d'água, feno, barris, postes, placa) | `72_modelos.js` (dados) + `75_three.js` | `fpInit()` monta as geometrias; `fp(k,escala)`, `fpFit(k,w,d)`, `fpH(k,altura)`, `fpFence()`, `build3DPack()`, `mkDecoPack()`. Se o pacote falhar, o jogo volta para os modelos feitos por código. Para trocar ou adicionar modelos: `tools/farmpack/LEIAME.md` |
 | Sincronizar estado → cena 3D e desenhar | `75_three.js` | `syncFarm()`, `render(farm)`, `overlay(farm)`; cache de objetos por `WeakMap` (`OBJ`, `objFor`) |
 | Laço do jogo | `70_runtime.js` | `frame(now)` (requestAnimationFrame) |
 | Ícones e efeitos | `70_runtime.js` | `makeIcons()` (`ICON`), `fx()`, `puff()`, `burstS()` |

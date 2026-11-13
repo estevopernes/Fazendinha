@@ -13,3 +13,4 @@ Formato: `AAAA-MM-DD — decisão — por quê`
 - 2026-11-13 — Visual em 3D (Three.js), câmera isométrica parecida com Green Farm 3 — pedido do Estevão ("3D profissional").
 - 2026-11-13 — Pacotes gratuitos da Quaternius rejeitados — "ruim demais essas imagens".
 - 2026-11-13 — Projeto em repositório próprio, separado do Bate-Esse; Claude e ChatGPT trabalham por branch e pull request — pedido do Estevão.
+- 2026-11-13 — Cenário e prédios passam a usar o pacote "Farm Pack Low-poly" (LionStudio, CGTrader, Royalty Free, comprado pelo Estevão); animais continuam feitos por código — pedido do Estevão (visual 3D profissional).
