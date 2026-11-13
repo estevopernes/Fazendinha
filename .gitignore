@@ -1,0 +1,4 @@
+node_modules/
+dist-index.html
+teste-*.png
+.DS_Store

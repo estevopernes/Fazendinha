@@ -1,0 +1,14 @@
+// Teste de fumaça com Playwright: abre o jogo, passa da abertura, tira prints e lista erros do console.
+// Uso: npm i -D playwright && npx playwright install chromium && node tests/teste-3d.js
+// Serve o Three.js local (vendor/) no lugar do CDN, para rodar sem internet.
+const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
+(async()=>{const b=await chromium.launch({args:['--use-gl=swiftshader']});
+const p=await b.newPage({viewport:{width:390,height:780}});const errs=[];
+p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.route('**/three.min.js',r=>r.fulfill({body:fs.readFileSync(path.join(__dirname,'../vendor/three.r128.min.js')),contentType:'text/javascript'}));
+await p.goto('file://'+path.join(__dirname,'../index.html'));await p.waitForTimeout(4500);
+await p.click('#sp-go',{force:true});await p.waitForTimeout(1500);await p.screenshot({path:'teste-fazenda.png'});
+await p.mouse.click(230,400);await p.waitForTimeout(700);
+await p.click('.tool >> text=Vizinhos');await p.waitForTimeout(500);await p.locator('[data-visit]').first().click();await p.waitForTimeout(2500);
+await p.screenshot({path:'teste-visita.png'});
+console.log(errs.length?'ERROS: '+JSON.stringify(errs):'Sem erros no console.');await b.close();})();

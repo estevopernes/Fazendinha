@@ -1,0 +1,13 @@
+{
+  "name": "fazendinha",
+  "private": true,
+  "description": "Jogo de fazenda 3D para celular (navegador). Arquivo único index.html gerado a partir de src/.",
+  "scripts": {
+    "build": "bash build.sh",
+    "test": "node tests/teste-3d.js",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}
