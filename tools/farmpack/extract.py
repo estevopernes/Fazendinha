@@ -42,7 +42,7 @@ A={
  'c_girassol':([447],None,None,.35),
  'c_melancia':([495],None,None,.55),
  'c_berinjela':([490],None,None,.35),
- 'c_uva':([559],None,None,.15),
+ 'c_uva':([559],None,None,.45),
 }
 meta={}
 for key,(cids,inc,exc,ratio) in A.items():
