@@ -265,30 +265,64 @@ function start(data){
 }
 window.claude?.hot?.snapshot?.(()=>({S}));
 // ---- tela de abertura ----
+// vitrine 3D da tela de abertura: uma ilhinha com os modelos do Farm Pack e alguns bichos
+function spVitrine(cv){try{
+  const rd=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true});rd.setClearColor(0,0);rd.shadowMap.enabled=true;rd.shadowMap.type=THREE.PCFSoftShadowMap;
+  const sc=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
+  sc.add(new THREE.HemisphereLight('#ffffff','#6fae4a',.66));const sun=new THREE.DirectionalLight('#fff1d0',.8);sun.position.set(-6,14,4);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+  Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:40});sun.shadow.bias=-.001;sc.add(sun);
+  const isl=new THREE.Group();sc.add(isl);const put=(m,px,pz,ry)=>{m.position.set(px,0,pz);if(ry)m.rotation.y=ry;isl.add(m);return m;};
+  const top=sh(new THREE.Mesh(new THREE.CylinderGeometry(5.3,5.3,.25,40),M('#79c457')));top.position.y=-.125;isl.add(top);
+  const side=new THREE.Mesh(new THREE.CylinderGeometry(5.3,4.3,1.1,40),M('#9a6a3a'));side.position.y=-.8;isl.add(side);
+  put(fp('celeiro',.52),-2.3,-1.7);put(fp('silo',.36),-.4,-3.1);put(fp('casa',.62),1.7,-2.1);
+  const ms=1.5/fpSize('moinho').x,mo=put(grp(fp('moinho',ms)),4.0,-.7,-.7),pv=new THREE.Group(),pp=FP_META.moinho_pas.piv;pv.position.set(pp[0]*ms,pp[1]*ms,pp[2]*ms);pv.add(fp('moinho_pas',ms));mo.add(pv);
+  put(fpH('macieira',1.9),-4.1,.8,1);put(fpH('pinheiro',2),-3.4,-3.2);put(fpH('laranjeira',2),3.8,-2.9);put(fpH('betula',2),.9,-4.1);
+  put(fp('feno',.45),-3.9,2.5,.5);put(fp('barril',.5),-.9,-1.6);put(fp('poste',.55),.8,3.3);
+  ['c_milho','c_girassol','c_abobora','c_tomate','c_alface','c_cenoura'].forEach((k,n)=>{const px=-1.6+(n%3)*1.05,pz=.4+Math.floor(n/3)*1.05;
+    put(at(box(.96,.1,.96,'#a8692f'),0,.05,0),px,pz);const z=fpSize(k),c=fp(k,.92/Math.max(z.x,z.z));c.position.set(px,.1,pz);isl.add(c);});
+  fpFence(isl,-3.2,3.9,.2,3.9,'cerca');fpFence(isl,1.4,3.9,3.6,3.9,'cerca');
+  const bichos=[[{type:'vaca'},2.3,1.9,-.6],[{type:'ovelha'},3.3,2.7,-1.2],[{type:'galinha',v:0},1.2,2.7,-.3],[{type:'galinha',v:1},-2.6,2.9,1]].map(([a,px,pz,ry])=>{const m=put(mkAnimal3(a),px,pz,ry);m.scale.setScalar(1.25);return m;});
+  const dog=put(mkDog3(),-2.4,1.6,-.4);dog.scale.setScalar(1.3);
+  let on=true;
+  const fit=()=>{const r=Math.min(2,devicePixelRatio||1),w=cv.clientWidth,h=cv.clientHeight;rd.setPixelRatio(r);rd.setSize(w,h,false);const a=w/h,fh=Math.max(11.8/a,10.5);
+    cam.left=-fh*a/2;cam.right=fh*a/2;cam.top=fh/2;cam.bottom=-fh/2;cam.position.set(12,10,12);cam.lookAt(0,.6,0);
+    // empurra a ilha um pouco para baixo, entre o título e a barra
+    cam.position.y+=fh*.03;cam.updateProjectionMatrix();};fit();addEventListener('resize',fit);
+  return{draw(t){if(!on)return;isl.rotation.y=Math.sin(t*.25)*.22;pv.rotation.z=t*1.6;
+      bichos.forEach((m,n)=>{const P=m.userData.P;if(P.head&&P.h0){const d=n>1?Math.max(0,Math.sin(t*3+n*2)):0;P.head.position.y=P.h0.y-d*.18+Math.sin(t*2+n)*.01;}if(P.tail)P.tail.rotation.x=Math.sin(t*3+n)*.3;});
+      const P=dog.userData.P;if(P.tail)P.tail.rotation.x=Math.sin(t*14)*.6;rd.render(sc,cam);},
+    stop(){on=false;removeEventListener('resize',fit);rd.dispose();try{rd.forceContextLoss();}catch(e){}}};
+}catch(e){console.warn('vitrine 3D',e);return null;}}
 function splash(){
-  const el=$('splash'),sc=$('splashcv'),x=sc.getContext('2d'),bar=$('sp-bar'),lab=$('sp-lab');let t0=performance.now(),run=true,prog=0,shown=0;
+  const el=$('splash'),sc=$('splashcv'),x=sc.getContext('2d'),bar=$('sp-bar'),lab=$('sp-lab');let t0=performance.now(),run=true,prog=0,shown=0,ready=false,v3=null;
   const fit=()=>{const r=Math.min(2,devicePixelRatio||1);sc.width=sc.clientWidth*r;sc.height=sc.clientHeight*r;};fit();addEventListener('resize',fit);
   const hen={type:'galinha',x:0,y:0,dir:1,state:'walk',phase:0,v:0},hen2={type:'galinha',x:0,y:0,dir:-1,state:'peck',phase:0,v:1},cow={type:'vaca',x:0,y:0,dir:1,state:'graze',phase:0},dog={x:0,y:0,dir:-1,state:'walk',phase:0};
   function draw(now){if(!run)return;const t=(now-t0)/1000,r=sc.width/sc.clientWidth,w=sc.clientWidth,h=sc.clientHeight;x.setTransform(r,0,0,r,0,0);
     const sky=x.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#8fd3f0');sky.addColorStop(.55,'#d6f0e0');sky.addColorStop(1,'#f6e7b8');x.fillStyle=sky;x.fillRect(0,0,w,h);
     const sy=h*.34;x.save();x.globalAlpha=.25;circ(x,w*.8,sy,70+Math.sin(t*2)*4,'#fff6a8');x.restore();circ(x,w*.8,sy,42,'#f6c445');
     for(let i=0;i<3;i++){const cx=((t*12*(i+1)+i*260)%(w+200))-100,cy=h*(.1+i*.08);for(const [dx,dy,rr2] of [[0,0,18],[18,-6,22],[38,0,17]])circ(x,cx+dx,cy+dy,rr2,'rgba(255,255,255,.9)');}
-    const hill=(yb,amp,col,off)=>{x.beginPath();x.moveTo(0,h);for(let i=0;i<=w;i+=8)x.lineTo(i,yb+Math.sin(i/120+off)*amp);x.lineTo(w,h);x.closePath();x.fillStyle=col;x.fill();};
+    const hill=(yb,amp,col,off)=>{x.beginPath();x.moveTo(0,h);for(let i=0;i<=w+8;i+=8)x.lineTo(i,yb+Math.sin(i/120+off)*amp);x.lineTo(w,h);x.closePath();x.fillStyle=col;x.fill();};
     hill(h*.58,16,'#9ccf6a',1);hill(h*.66,12,'#7cbf56',3);
+    if(v3){hill(h*.74,8,'#5f9e43',5);v3.draw(t);}else{
     x.save();x.translate(w*.04-BARN.x*.5,h*.63-(BARN.y+BARN.h)*.5);x.scale(.5,.5);drawBarn(x);x.restore();
     for(let i=0;i<6;i++){x.save();x.translate(w*.56+i*20,h*.68);drawCrop(x,0,0,['girassol','milho','girassol','tomate','girassol','milho'][i],1,t,0);x.restore();}
     hill(h*.74,8,'#5f9e43',5);
     x.save();x.translate(0,0);hen.x=((t*40)%(w+80))-40;hen.y=h*.8;hen.phase=t;hen2.x=w*.72;hen2.y=h*.84;cow.x=w*.34;cow.y=h*.83;dog.x=w-((t*55)%(w+80))+40;dog.y=h*.9;dog.phase=t;
     for(const a of [cow,hen2,hen]){x.save();x.translate(a.x,a.y);x.scale(1.4,1.4);x.translate(-a.x,-a.y);drawAnimal(x,a,t);x.restore();}
-    x.save();x.translate(dog.x,dog.y);x.scale(1.4,1.4);x.translate(-dog.x,-dog.y);drawDog(x,dog,t);x.restore();x.restore();
-    shown+=(prog-shown)*.08;bar.style.width=(shown*100).toFixed(1)+'%';
+    x.save();x.translate(dog.x,dog.y);x.scale(1.4,1.4);x.translate(-dog.x,-dog.y);drawDog(x,dog,t);x.restore();x.restore();}
+    // a barra acompanha o carregamento de verdade e só mostra "Jogar" quando chega no fim
+    const dt=Math.min(.25,t-(draw.lt||t));draw.lt=t;shown+=(prog-shown)*Math.min(1,dt*9);if(prog>=1&&shown>.985&&!ready){shown=1;ready=true;$('sp-go').hidden=false;}
+    bar.style.width=(shown*100).toFixed(1)+'%';
     requestAnimationFrame(draw);}
   requestAnimationFrame(draw);
-  const steps=[['Afiando as enxadas…',()=>makeIcons()],['Preparando a terra…',()=>buildBG()],['Montando a fazenda em 3D…',()=>initThree()],['Acordando os bichos…',()=>{}],['Regando as plantas…',()=>{}],['Chamando os vizinhos…',()=>{}]];
-  let i=0;const next=()=>{if(i>=steps.length){prog=1;lab.textContent='Tudo pronto!';setTimeout(()=>{$('sp-go').hidden=false;try{$('sp-go').focus();}catch(e){}},350);return;}
-    lab.textContent=steps[i][0];steps[i][1]();i++;prog=i/steps.length*.95;setTimeout(next,380+Math.random()*260);};
-  setTimeout(next,300);
-  $('sp-go').onclick=()=>{el.classList.add('out');setTimeout(()=>{run=false;el.hidden=true;},600);};
+  const steps=[['Afiando as enxadas…',()=>makeIcons()],['Preparando a terra…',()=>buildBG()],['Abrindo o pacote de modelos…',()=>typeof fpLoad==='function'?fpLoad():0],
+    ['Montando a fazenda em 3D…',()=>initThree()],['Acordando os bichos…',()=>{if(typeof FP!=='undefined'&&FP.ok)v3=spVitrine($('sp3d'));}],['Chamando os vizinhos…',()=>{}]];
+  let i=0;const next=async()=>{if(i>=steps.length){prog=1;lab.textContent='Tudo pronto!';return;}
+    lab.textContent=steps[i][0];await new Promise(r=>setTimeout(r,60));
+    try{await steps[i][1]();}catch(e){console.warn(e);}
+    i++;prog=i/steps.length*.96;setTimeout(next,120+Math.random()*100);};
+  setTimeout(next,200);
+  $('sp-go').onclick=()=>{el.classList.add('out');setTimeout(()=>{run=false;el.hidden=true;if(v3)v3.stop();},600);};
 }
 const boot=d=>{const go=()=>{splash();const wait=()=>{if(ICON.coin&&bgCanvas&&(R3||typeof THREE==='undefined'))start(d);else setTimeout(wait,50);};wait();};if(document.fonts&&document.fonts.ready){Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1200))]).then(go);}else go();};
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});

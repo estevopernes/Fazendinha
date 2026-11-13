@@ -6,7 +6,7 @@ const {chromium}=require('playwright');const fs=require('fs');const path=require
 const p=await b.newPage({viewport:{width:390,height:780}});const errs=[];
 p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 await p.route('**/three.min.js',r=>r.fulfill({body:fs.readFileSync(path.join(__dirname,'../vendor/three.r128.min.js')),contentType:'text/javascript'}));
-await p.goto('file://'+path.join(__dirname,'../index.html'));await p.waitForTimeout(4500);
+await p.goto('file://'+path.join(__dirname,'../index.html'));await p.waitForSelector('#sp-go:not([hidden])',{timeout:60000}); // espera a barra chegar ao fim (antes era um tempo fixo de 4,5 s, que falhava em máquina lenta)
 await p.click('#sp-go',{force:true});await p.waitForTimeout(1500);await p.screenshot({path:'teste-fazenda.png'});
 await p.mouse.click(230,400);await p.waitForTimeout(700);
 await p.click('.tool >> text=Vizinhos');await p.waitForTimeout(500);await p.locator('[data-visit]').first().click();await p.waitForTimeout(2500);

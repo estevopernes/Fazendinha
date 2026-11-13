@@ -15,20 +15,30 @@ function roofP(w,h,d,c){const s=new THREE.Shape();s.moveTo(-w/2,0);s.lineTo(0,h)
 
 // ---------- modelos do Farm Pack (dados em 72_modelos.js) ----------
 // Monta as geometrias uma vez e reaproveita (todas as cópias usam a mesma geometria e o mesmo material).
+// Os dados vêm comprimidos (deflate); fpLoad() descomprime com DecompressionStream, que todo navegador atual tem.
 // Se algo falhar, FP.ok fica false e o jogo usa os modelos antigos feitos por código.
-const FP={ok:false,geo:{},mat:null};
-function fpInit(){if(FP.ok||typeof FP_BIN==='undefined')return;try{
-  const raw=atob(FP_BIN),u8=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)u8[i]=raw.charCodeAt(i);
+const FP={ok:false,geo:{},mat:null,p:null};
+function fpLoad(){if(FP.p)return FP.p;FP.p=(async()=>{try{
+  if(typeof FP_BIN==='undefined'||typeof THREE==='undefined'||typeof DecompressionStream==='undefined')return false;
+  const z=Uint8Array.from(atob(FP_BIN),c=>c.charCodeAt(0));
+  const u8=new Uint8Array(await new Response(new Blob([z]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
   let tv=0,ti=0;for(const k in FP_META){tv+=FP_META[k].v;ti+=FP_META[k].i;}
-  const Pq=new Uint16Array(u8.buffer,0,tv*3),Tq=new Uint16Array(u8.buffer,tv*6,tv*2),Iq=new Uint16Array(u8.buffer,tv*10,ti),Nq=new Int8Array(u8.buffer,tv*10+ti*2,tv*3);
-  let ov=0,oi=0;
-  for(const k in FP_META){const m=FP_META[k],pos=new Float32Array(m.v*3),uv=new Float32Array(m.v*2);
-    for(let i=0;i<m.v;i++){const j=(ov+i);for(let a=0;a<3;a++)pos[i*3+a]=m.lo[a]+Pq[j*3+a]/65535*(m.hi[a]-m.lo[a]);uv[i*2]=Tq[j*2]/65535;uv[i*2+1]=Tq[j*2+1]/65535;}
-    const gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3));gm.setAttribute('normal',new THREE.BufferAttribute(Nq.slice(ov*3,(ov+m.v)*3),3,true));
-    gm.setAttribute('uv',new THREE.BufferAttribute(uv,2));gm.setIndex(new THREE.BufferAttribute(Iq.slice(oi,oi+m.i),1));gm.computeBoundingSphere();FP.geo[k]=gm;ov+=m.v;oi+=m.i;}
-  const tex=new THREE.TextureLoader().load(FP_ATLAS);tex.flipY=false;tex.generateMipmaps=false;tex.minFilter=THREE.LinearFilter;
+  let o=0;const chan=n=>{const out=new Int32Array(n);let acc=0;for(let i=0;i<n;i++){const v=(u8[o+i]<<8)|u8[o+n+i];acc=(acc+((v>>>1)^-(v&1)))&0xffff;out[i]=acc;}o+=2*n;return out;};
+  const px=chan(tv),py=chan(tv),pz=chan(tv),tu=chan(tv),tw=chan(tv),ix=chan(ti);
+  const nx=new Int8Array(u8.buffer,o,tv),ny=new Int8Array(u8.buffer,o+tv,tv);
+  const q=(1<<FP_QB)-1;let ov=0,oi=0;
+  for(const k in FP_META){const m=FP_META[k],pos=new Float32Array(m.v*3),nrm=new Float32Array(m.v*3),uv=new Float32Array(m.v*2);
+    const sx=(m.hi[0]-m.lo[0])/q,sy=(m.hi[1]-m.lo[1])/q,sz=(m.hi[2]-m.lo[2])/q;
+    for(let i=0;i<m.v;i++){const j=ov+i;pos[i*3]=m.lo[0]+px[j]*sx;pos[i*3+1]=m.lo[1]+py[j]*sy;pos[i*3+2]=m.lo[2]+pz[j]*sz;uv[i*2]=tu[j]/q;uv[i*2+1]=tw[j]/q;
+      // normal em octaedro
+      let a=nx[j]/127,b=ny[j]/127,c=1-Math.abs(a)-Math.abs(b);if(c<0){const a0=a;a=(1-Math.abs(b))*(a0>=0?1:-1);b=(1-Math.abs(a0))*(b>=0?1:-1);}
+      const l=Math.hypot(a,b,c)||1;nrm[i*3]=a/l;nrm[i*3+1]=b/l;nrm[i*3+2]=c/l;}
+    const gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3));gm.setAttribute('normal',new THREE.BufferAttribute(nrm,3));
+    gm.setAttribute('uv',new THREE.BufferAttribute(uv,2));gm.setIndex(new THREE.BufferAttribute(Uint16Array.from(ix.subarray(oi,oi+m.i)),1));gm.computeBoundingSphere();FP.geo[k]=gm;ov+=m.v;oi+=m.i;}
+  const img=new Image();img.src=FP_ATLAS;await img.decode();
+  const tex=new THREE.Texture(img);tex.flipY=false;tex.generateMipmaps=false;tex.minFilter=THREE.LinearFilter;tex.needsUpdate=true;
   FP.mat=new THREE.MeshPhongMaterial({map:tex,specular:0x2a2a2a,shininess:24});FP.ok=true;
-}catch(e){console.warn('Farm Pack: usando modelos antigos',e);FP.ok=false;}}
+}catch(e){console.warn('Farm Pack: usando modelos antigos',e);FP.ok=false;}return FP.ok;})();return FP.p;}
 function fpSize(k){const m=FP_META[k];return{x:m.hi[0]-m.lo[0],y:m.hi[1]-m.lo[1],z:m.hi[2]-m.lo[2]};}
 function fp(k,s){const m=sh(new THREE.Mesh(FP.geo[k],FP.mat));if(s)m.scale.setScalar(s);return m;}
 // cabe numa área w×d (em casas do mapa), mantendo a proporção
@@ -63,7 +73,6 @@ function build3DStatic(){
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(W*U,H*U),new THREE.MeshLambertMaterial({map:tex}));ground.rotation.x=-Math.PI/2;ground.position.set(W*U/2,0,H*U/2);ground.receiveShadow=true;s.add(ground);
   const water=new THREE.Mesh(new THREE.CircleGeometry(1,28),new THREE.MeshLambertMaterial({color:'#4cc2f0',transparent:true,opacity:.85}));water.rotation.x=-Math.PI/2;water.scale.set(POND.rx*U,POND.ry*U,1);water.position.set(POND.x*U,.02,POND.y*U);s.add(water);R3.water=water;
   for(const [dx,dy] of [[-55,18],[45,-18],[60,26]]){const l=at(rot(cyl(.18,.18,.02,'#5aa83c',12)),(POND.x+dx)*U,.05,(POND.y+dy)*U);s.add(l);}
-  fpInit();
   if(FP.ok){build3DPack(s);R3.farmG=new THREE.Group();s.add(R3.farmG);R3.dyn=new THREE.Group();s.add(R3.dyn);R3.sig='';R3.objs=new Map();return;}
   const house=mkHouse();house.position.set((HOUSE.x+HOUSE.w/2)*U,0,(HOUSE.y+HOUSE.h)*U-1.4);s.add(house);
   const barn=mkBarn();barn.position.set((BARN.x+BARN.w/2)*U,0,(BARN.y+BARN.h)*U-1.45);s.add(barn);
@@ -141,6 +150,10 @@ function mkDecoPack(d,f,x,z,G2){const at2=m=>{m.position.set(x,0,z);G2.add(m);re
 const CROPC={tomate:'#e2483d',morango:'#d93a4a',berinjela:'#5b2a7a',uva:'#6a2a7a',pepino:'#4f8a2a',abobora:'#e9862b',melancia:'#2f7a2f',milho:'#f4d23c',cenoura:'#f08a2c',batata:'#c9a46a',alface:'#8fd56a',girassol:'#f7c623',abacaxi:'#e8a43a'};
 const SPOTS4=[[-.2,-.2],[.2,-.2],[-.2,.2],[.2,.2]],SPOTS2=[[-.18,0],[.18,0]];
 function mkCrop(k,stage){const C0=CROPS[k]||{},b=C0.base||k,tint=C0.tint,G2=new THREE.Group();
+  // planta madura: modelo do Farm Pack (as variações especiais, como a dourada, continuam feitas por código)
+  if(stage===3&&FP.ok&&!tint&&FP.geo['c_'+b]){const k='c_'+b,z=fpSize(k);
+    if(b==='berinjela')for(const [x,zz,r] of [[-.2,-.12,0],[.2,.14,2.4]])G2.add(at(rot(fp(k,.62),0,r,0),x,0,zz));else G2.add(fp(k,.9/Math.max(z.x,z.z)));
+    G2.userData.ready=1;return G2;}
   if(stage===0){G2.add(scl(at(sph(.28,'#7a4a26',10,6),0,.0,0),1,.25,1));for(const [x,z] of [[-.1,0],[.05,.08],[.1,-.07]])G2.add(at(sph(.035,'#e8d6a0',6,4),x,.07,z));return G2;}
   if(stage===1){for(const [x,z] of SPOTS4){G2.add(at(cyl(.012,.015,.14,'#3f8a35',5),x,.07,z));G2.add(at(rot(scl(sph(.05,'#7cc85a',7,5),1,.35,.6),0,0,.5),x-.04,.15,z));G2.add(at(rot(scl(sph(.05,'#6fbf4a',7,5),1,.35,.6),0,0,-.5),x+.04,.15,z));}return G2;}
   const fl=stage===2,fr=stage===3,green='#4aa83c',green2='#5cc447';

@@ -33,6 +33,16 @@ A={
  'caixote':([503],None,None,1),
  'poste':([164],None,None,.8),
  'placa':([179],None,None,1),
+ 'c_alface':([491],None,None,.3),
+ 'c_cenoura':([555],None,None,.35),
+ 'c_batata':([410],None,None,.5),
+ 'c_tomate':([449],None,None,.3),
+ 'c_milho':([451],None,None,.6),
+ 'c_abobora':([453],None,None,.4),
+ 'c_girassol':([447],None,None,.35),
+ 'c_melancia':([495],None,None,.55),
+ 'c_berinjela':([490],None,None,.35),
+ 'c_uva':([559],None,None,.15),
 }
 meta={}
 for key,(cids,inc,exc,ratio) in A.items():
