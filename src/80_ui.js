@@ -1,3 +1,7 @@
+// plural em português para os nomes do jogo (pavão → pavões, curral → currais, galinha dourada → galinhas douradas)
+function plw(w){if(/ão$/.test(w))return w.slice(0,-2)+'ões';if(/al$/.test(w))return w.slice(0,-1)+'is';if(/il$/.test(w))return w.slice(0,-1)+'s';if(/[sx]$/.test(w))return w;return w+'s';}
+function plural(n){const w=n.split(' ');const i=w.findIndex(x=>/^(de|da|das|do|dos)$/.test(x));return(i>0?w.slice(0,i).map(plw).concat(w.slice(i)):w.map(plw)).join(' ');}
+const qtd=(k,nome)=>k+' '+(k===1?nome:plural(nome));
 // ====================== INPUT ======================
 const ptrs=new Map();let drag=null,pinch=null;
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -19,8 +23,8 @@ const stageName=pr=>['semente','brotando','florindo','pronto'][stageOf(pr)];
 function collectEggs(f,penId,x,y){const eggs=f.eggs.filter(e=>e.pen===penId);if(!eggs.length)return false;const K=eggs[0].k||'ovo';
   const free=barnFree();if(free<=0){toast('Celeiro cheio! Venda itens ou amplie o celeiro.');return true;}
   const take=eggs.slice(0,free);f.eggs=f.eggs.filter(e=>!take.includes(e));for(const e of take)puff(e.x,e.y-4);
-  const by={};for(const e of take){const k=e.k||'ovo';by[k]=(by[k]||0)+1;}let xp=0;for(const k in by){addBarn(k,by[k]);const A=Object.values(ANIMALS).find(a=>a.prod===k)||ANIMALS.galinha;xp+=by[k]/A.qty*A.pxp;}fx(x,y-14,'+'+take.length+' ovos','#b07a12');addXP(Math.max(1,Math.round(xp)),x,y);
-  if(take.length<eggs.length)toast('Celeiro cheio! Ficaram '+(eggs.length-take.length)+' ovos no galinheiro.');save();return true;}
+  const by={};for(const e of take){const k=e.k||'ovo';by[k]=(by[k]||0)+1;}let xp=0;for(const k in by){addBarn(k,by[k]);const A=Object.values(ANIMALS).find(a=>a.prod===k)||ANIMALS.galinha;xp+=by[k]/A.qty*A.pxp;}fx(x,y-14,'+'+qtd(take.length,'ovo'),'#b07a12');addXP(Math.max(1,Math.round(xp)),x,y);
+  if(take.length<eggs.length)toast('Celeiro cheio! '+(eggs.length-take.length>1?'Ficaram ':'Ficou ')+qtd(eggs.length-take.length,'ovo')+' no galinheiro.');save();return true;}
 function tap(px,py){
   if(busy)return;const W0=inv(px,py),x=W0.x,y=W0.y;const near=(wx,wy,off,r)=>{const P=iso(wx,wy,off);return Math.hypot(P.x-px,P.y-py)<r*clamp(ZS*1.3,.8,1.6);};
   if(mode==='visit'){visitTap(x,y);return;}
@@ -52,20 +56,20 @@ function tap(px,py){
       toast(msg);return;}
     if(tool==='regar'){toast('Canteiro vazio. Escolha uma semente para plantar.');return;}
     const k=S.seed,C=CROPS[k];if(C.lvl>S.level){openShop('sementes');return;}
-    if(C.cash){if((S.cash||0)<C.cash){toast('Faltam cash para '+C.n+'.');openShop('cash');return;}S.cash-=C.cash;fx(xy.x,xy.y-34,'-'+C.cash+' cash','#17724f');hud();}
-    else{if(S.coins<C.cost){toast('Faltam moedas para '+C.n+'.');return;}addCoins(-C.cost,xy.x,xy.y);}plant(p,k,0);puff(xy.x,xy.y-6,'#b98a5a');save();return;}
+    if(C.cash){if((S.cash||0)<C.cash){toast('Falta cash para plantar '+C.n.toLowerCase()+'.');openShop('cash');return;}S.cash-=C.cash;fx(xy.x,xy.y-34,'-'+C.cash+' cash','#17724f');hud();}
+    else{if(S.coins<C.cost){toast('Faltam moedas para plantar '+C.n.toLowerCase()+'.');return;}addCoins(-C.cost,xy.x,xy.y);}plant(p,k,0);puff(xy.x,xy.y-6,'#b98a5a');save();return;}
   const pen=penAt(f,x,y);
   if(pen){const P=PEN_TYPES[pen.type],A=ANIMALS[P.animal],an=f.animals.filter(a=>a.pen===pen.id);
-    if(!an.length){toast(P.n+' vazio. Compre '+A.n.toLowerCase()+'s na loja (até '+PEN_CAP+').');return;}
+    if(!an.length){toast(P.n+' vazio. Compre '+plural(A.n.toLowerCase())+' na loja (até '+PEN_CAP+').');return;}
     const next=pen.type==='galinheiro'?'próximo ovo em '+fmtT(Math.min(...an.map(a=>((Math.floor(a.prod*A.qty)+1)/A.qty-a.prod)*A.t))):
       (an.some(a=>a.ready)?'tem produto pronto!':'pronto em '+fmtT(Math.min(...an.map(a=>(1-a.prod)*A.t))));
-    toast(P.n+': '+an.length+'/'+PEN_CAP+' '+A.n.toLowerCase()+(an.length>1?'s':'')+' · '+next);return;}
-  if(tool==='plantar'){toast('Plante nos canteiros. Para ter mais, compre canteiros na loja.');}
+    toast(P.n+': '+an.length+'/'+PEN_CAP+' '+(an.length>1?plural(A.n.toLowerCase()):A.n.toLowerCase())+' · '+next);return;}
+  if(tool==='plantar'){toast('Plante nos canteiros. Para ter mais, compre canteiros na loja (aba Decoração).');}
 }
 
 // ---- colocar itens comprados ----
 function startPlacing(o){placing=o;placing.c=null;closeSheet();tool='mao';buildTools();showPlacebar();
-  toast(o.multi?'Toque na grama para colocar. Toque em Pronto quando terminar.':'Toque na grama onde quer colocar o '+o.name.toLowerCase()+'.');}
+  toast(o.multi?'Toque na grama para colocar. Toque em Pronto quando terminar.':'Toque na grama onde quer colocar: '+o.name+'.');}
 function placeCost(){const P=placing;return P.kind==='plot'?plotCost(S.home.plots.length):P.cashCost||P.cost;}
 function showPlacebar(){const b=$('placebar');if(!placing){b.hidden=true;return;}b.hidden=false;
   const cost=placeCost();
@@ -77,7 +81,7 @@ function placeTap(x,y){const P=placing,f=S.home;P.c=Math.floor(x/T)-Math.floor((
   if(P.multi){if(P.ok)confirmPlace();else toast('Este lugar está ocupado.');P.c=P.multi?P.c:null;}
   showPlacebar();}
 function confirmPlace(){const P=placing,f=S.home;if(!P||P.c==null||!canPlace(f,P.c,P.r,P.w,P.h))return;
-  const cost=placeCost();if(P.cashCost){if((S.cash||0)<cost){toast('Faltam cash.');return;}S.cash-=cost;hud();}else{if(S.coins<cost){toast('Faltam moedas.');return;}addCoins(-cost,(P.c+P.w/2)*T,P.r*T+20);}
+  const cost=placeCost();if(P.cashCost){if((S.cash||0)<cost){toast('Falta cash.');return;}S.cash-=cost;hud();}else{if(S.coins<cost){toast('Faltam moedas.');return;}addCoins(-cost,(P.c+P.w/2)*T,P.r*T+20);}
   if(P.kind==='plot'){if(f.plots.length>=maxPlots(S.level)){toast('Limite de canteiros do nível '+S.level+' atingido.');placing=null;showPlacebar();return;}f.plots.push(newPlot(P.c,P.r));addXP(1,P.c*T+T/2,P.r*T+T/2);}
   else if(P.kind==='deco'){f.deco.push({type:P.type,c:P.c,r:P.r});addXP(DECO[P.type].xp,P.c*T+T/2,P.r*T+T/2);}
   else if(P.kind==='pen'){const pen=newPen(P.type,P.c,P.r);f.pens.push(pen);addXP(PEN_TYPES[P.type].xp,(P.c+P.w/2)*T,P.r*T+30);toast(PEN_TYPES[P.type].n+' pronto! Agora compre os animais na loja.');}
@@ -106,7 +110,7 @@ function visitTap(x,y){
   const walkTo=()=>{me.x=xy.x-22;me.y=xy.y+10;me.dir=1;me.state='act';setTimeout(()=>{if(me.state==='act')me.state='idle';},700);};
   const use=()=>{n.used++;hud();save();if(n.used>=5)setTimeout(()=>toast('Ações acabaram por hoje. Toque em Voltar para ir para casa.'),1200);};
   if(tool==='colher'){if(!(p.crop&&p.prog>=1&&p.qty>0)){toast('Aqui não tem nada maduro para colher.');return;}walkTo();
-    puff(xy.x,xy.y-10,'#f6c445');fx(xy.x,xy.y-30,'Colheu p/ @'+n.handle,'#3f8a35');clearPlot(p);addXP(2,xy.x,xy.y);addCoins(5,xy.x,xy.y);use();return;}
+    puff(xy.x,xy.y-10,'#f6c445');fx(xy.x,xy.y-30,'Ajudou @'+n.handle,'#3f8a35');clearPlot(p);addXP(2,xy.x,xy.y);addCoins(5,xy.x,xy.y);use();return;}
   if(tool==='regar'){if(!canWater(p)){toast(p.crop&&p.prog<.5?'Só dá para regar a partir de 50%.':p.water?'Este plantio já foi regado.':'Este canteiro não precisa de água.');return;}walkTo();waterPlot(p);puff(xy.x,xy.y-10,'#7cc4ec');addXP(1,xy.x,xy.y);addCoins(3,xy.x,xy.y);use();return;}
   if(tool==='erva'){if(!(p.weed||p.bug)){toast('Sem ervas daninhas nem pragas aqui.');return;}walkTo();const w=p.weed;if(w)p.weed=false;else p.bug=false;puff(xy.x,xy.y-10,w?'#7a9a3a':'#d9483d');addXP(2,xy.x,xy.y);addCoins(4,xy.x,xy.y);use();return;}
   if(tool==='roubar'){
@@ -152,32 +156,34 @@ let toastT;function toast(m,ms){const t=$('toast');t.textContent=m;t.classList.a
 
 let sheetTab=null,sheetKind=null;
 function openSheet(title,tabs,tab,render){sheetKind=render;sheetTab=tab;$('sh-t').textContent=title;
-  $('sh-tabs').innerHTML=tabs.map(([k,l])=>'<button class="tab'+(k===tab?' on':'')+'" data-t="'+k+'">'+l+'</button>').join('');$('sh-tabs').hidden=!tabs.length;
+  $('sh-tabs').innerHTML=tabs.map(([k,l])=>'<button class="tab'+(k===tab?' on':'')+'" data-t="'+k+'">'+l+'</button>').join('');$('sh-tabs').hidden=!tabs.length;$('sheet').classList.toggle('tabbed',!!tabs.length);
   render(tab);$('sh-b').scrollTop=0;$('sheet').hidden=false;$('scrim').hidden=false;}
 function closeSheet(){$('sheet').hidden=true;$('scrim').hidden=true;sheetKind=null;}
 $('sh-x').onclick=closeSheet;$('scrim').onclick=closeSheet;
 $('sh-tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;sheetTab=b.dataset.t;[...$('sh-tabs').children].forEach(x=>x.classList.toggle('on',x===b));sheetKind(sheetTab);$('sh-b').scrollTop=0;});
 const price=(n,c)=>'<span class="price'+(c?' cashp':'')+'"><img alt="" src="'+ICON[c?'cash':'coin'].url+'">'+n.toLocaleString('pt-BR')+'</span>';
+// linhas do cartão: cada trecho entre " · " fica inteiro (não quebra no meio de "1min 35s" ou "rende 4")
+const ln=(...a)=>'<span class="ln">'+a.filter(Boolean).map(x=>x.replace(/<[^>]+>/g,'').length<=16?'<span class="nw">'+x+'</span>':x).join(' · ')+'</span>';
 const card=(attr,icon,name,meta,cost,lock,extra,isCash)=>'<button class="item'+(lock?' locked':'')+(extra||'')+(isCash?' rare':'')+'" '+attr+'><img alt="" src="'+ICON[icon].url+'"><span class="nm">'+name+'</span><span class="meta">'+meta+'</span>'+price(cost,isCash)+'</button>';
 
 function openShop(tab){if(mode!=='home'){toast('A loja abre quando você voltar para casa.');return;}
-  openSheet('Loja da Vila',[['sementes','Sementes'],['animais','Animais'],['abrigos','Abrigos'],['terreno','Canteiros e decoração'],['cachorro','Cachorro'],['cash','Loja de Cash']],tab,renderShop);}
+  openSheet('Loja da Vila',[['sementes','Sementes'],['animais','Animais'],['abrigos','Abrigos'],['terreno','Decoração'],['cachorro','Cachorro'],['cash','Loja de Cash']],tab,renderShop);}
 function renderShop(tab){const b=$('sh-b');
   if(tab==='sementes'){const ks=Object.keys(CROPS).filter(k=>!CROPS[k].cash).sort((a,c)=>CROPS[a].lvl-CROPS[c].lvl);
     b.innerHTML='<p class="note">Cada semente tem seu tempo. Ela passa por semente, broto (50%), flor (75%) e fruto (100%). A rega libera em 50% e corta 10% do tempo, uma vez por plantio.</p><div class="grid">'+ks.map(k=>{const c=CROPS[k],lock=c.lvl>S.level;
-      return card('data-seed="'+k+'"',k,c.n,lock?'Libera no nível '+c.lvl:fmtT(c.t)+' · rende '+c.y+'<br>+'+c.xp+' XP · vende '+c.sell+'/un',c.cost,lock,k===S.seed?' sel':'');}).join('')+'</div>';}
+      return card('data-seed="'+k+'"',k,c.n,lock?ln('Libera no nível '+c.lvl):ln(fmtT(c.t))+ln('rende '+c.y,'+'+c.xp+' XP')+ln('vende '+c.sell+'/un'),c.cost,lock,k===S.seed?' sel':'');}).join('')+'</div>';}
   else if(tab==='animais'){b.innerHTML='<p class="note">Cada animal mora no seu abrigo, com até '+PEN_CAP+' por abrigo. A quantidade de cada animal libera aos poucos, +1 a cada nível.</p><div class="grid">'+Object.entries(ANIMALS).filter(([,a])=>!a.cash).map(([k,a])=>{const lock=a.lvl>S.level,P=PRODUCTS[a.prod];
-      return card('data-animal="'+k+'"',k+'_a',a.n,lock?'Libera no nível '+a.lvl:'<b>Você tem '+S.home.animals.filter(x=>x.type===k).length+'/'+maxAnimals(k,S.level)+'</b><br>'+a.qty+' '+P.pl+' a cada '+fmtT(a.t)+'<br>+'+a.pxp+' XP por coleta · '+P.sell+'/'+P.u,a.cost,lock);}).join('')+'</div>';}
+      return card('data-animal="'+k+'"',k+'_a',a.n,lock?ln('Libera no nível '+a.lvl):ln('<b>Você tem '+S.home.animals.filter(x=>x.type===k).length+'/'+maxAnimals(k,S.level)+'</b>')+ln(a.qty+' '+P.pl,'a cada '+fmtT(a.t))+ln('+'+a.pxp+' XP','vende '+P.sell+'/'+P.u),a.cost,lock);}).join('')+'</div>';}
   else if(tab==='abrigos'){b.innerHTML='<p class="note">Compre o abrigo e escolha onde colocar na fazenda. Cada um guarda '+PEN_CAP+' animais.</p><div class="grid">'+Object.entries(PEN_TYPES).map(([k,p])=>{const lock=p.lvl>S.level;
-      return card('data-pen="'+k+'"','pen_'+k,p.n,lock?'Libera no nível '+p.lvl:'<b>Você tem '+S.home.pens.filter(x=>x.type===k).length+'/'+maxPens(k,S.level)+'</b><br>Para '+PEN_CAP+' '+ANIMALS[p.animal].n.toLowerCase()+(p.animal==='pavao'?'s':'s')+' · '+p.w+'×'+p.h+'<br>+'+p.xp+' XP',p.cost,lock);}).join('')+'</div>';}
-  else if(tab==='terreno'){b.innerHTML='<p class="note">Canteiros são onde você planta. O preço sobe um pouco a cada novo canteiro. Cercas se ligam sozinhas quando ficam lado a lado.</p><div class="grid">'+
-      card('data-plot="1"','canteiro','Canteiro','<b>Você tem '+S.home.plots.length+'/'+maxPlots(S.level)+'</b><br>+2 a cada nível · +1 XP',plotCost(S.home.plots.length),false)+
-      Object.entries(DECO).filter(([,d])=>!d.cash).map(([k,d])=>{const lock=d.lvl>S.level;return card('data-deco="'+k+'"','d_'+k,d.n,lock?'Libera no nível '+d.lvl:'Decoração<br>+'+d.xp+' XP',d.cost,lock);}).join('')+'</div>';}
+      return card('data-pen="'+k+'"','pen_'+k,p.n,lock?ln('Libera no nível '+p.lvl):ln('<b>Você tem '+S.home.pens.filter(x=>x.type===k).length+'/'+maxPens(k,S.level)+'</b>')+ln('para '+PEN_CAP+' '+plural(ANIMALS[p.animal].n.toLowerCase()))+ln(p.w+'×'+p.h+' casas','+'+p.xp+' XP'),p.cost,lock);}).join('')+'</div>';}
+  else if(tab==='terreno'){b.innerHTML='<p class="note">Aqui ficam os canteiros e os enfeites. Canteiros são onde você planta. O preço sobe um pouco a cada novo canteiro. Cercas se ligam sozinhas quando ficam lado a lado.</p><div class="grid">'+
+      card('data-plot="1"','canteiro','Canteiro',ln('<b>Você tem '+S.home.plots.length+'/'+maxPlots(S.level)+'</b>')+ln('+2 a cada nível')+ln('+1 XP'),plotCost(S.home.plots.length),false)+
+      Object.entries(DECO).filter(([,d])=>!d.cash).map(([k,d])=>{const lock=d.lvl>S.level;return card('data-deco="'+k+'"','d_'+k,d.n,lock?ln('Libera no nível '+d.lvl):ln('Decoração')+ln('+'+d.xp+' XP'),d.cost,lock);}).join('')+'</div>';}
   else if(tab==='cash'){renderCash();}
   else if(tab==='cachorro'){const f=S.home;const has=!!f.dog;const left=has?Math.max(0,(f.dogFood-Date.now())/1000):0;
     b.innerHTML='<p class="note">O cachorro vigia sua plantação. Quando um vizinho tenta roubar, ele corre, morde e o ladrão foge deixando moedas para você. Mas ele só vigia de barriga cheia: sem ração, dorme na casinha.</p><div class="grid">'+
-    card('data-buy="dog"','cachorro_a','Cachorro',has?'Você já tem um':'Guarda a fazenda<br>+10 XP',DOG_COST,has)+
-    card('data-buy="food"','racao','Ração',has?(left>0?'Acordado por '+fmtT(left):'Cachorro dormindo')+'<br>+15 min de vigia':'Precisa de cachorro',FOOD_COST,!has)+'</div>';}
+    card('data-buy="dog"','cachorro_a','Cachorro',has?ln('Você já tem um'):ln('Guarda a fazenda')+ln('+10 XP'),DOG_COST,has)+
+    card('data-buy="food"','racao','Ração',has?ln(left>0?'Acordado por '+fmtT(left):'Cachorro dormindo')+ln('+15 min de vigia'):ln('Precisa de cachorro'),FOOD_COST,!has)+'</div>';}
 }
 function openBarn(){if(mode!=='home')return;openSheet('Celeiro',[],null,renderBarn);}
 function renderBarn(){const b=$('sh-b');const used=barnUsed(),cap=S.barnCap;const items=Object.entries(S.barn).filter(([,n])=>n>0);const total=items.reduce((s,[k,n])=>s+n*itemSell(k),0);
@@ -192,17 +198,17 @@ function renderBarn(){const b=$('sh-b');const used=barnUsed(),cap=S.barnCap;cons
 $('sh-b').addEventListener('click',e=>{
   const t=e.target.closest('[data-seed],[data-animal],[data-pen],[data-plot],[data-deco],[data-pack],[data-pixok],[data-pixback],[data-pixcopy],[data-buy],[data-sell],[data-sellk],[data-sellall],[data-up],[data-visit],[data-addn],[data-copy],[data-insta]');if(!t)return;
   const d=t.dataset;
-  if(d.seed){const c=CROPS[d.seed];if(c.lvl>S.level){toast('Libera no nível '+c.lvl+'.');return;}S.seed=d.seed;tool='plantar';buildTools();closeSheet();toast(c.n+' selecionada. Toque nos canteiros vazios para plantar ('+(c.cash?c.cash+' cash':c.cost+' moedas')+' cada).');return;}
+  if(d.seed){const c=CROPS[d.seed];if(c.lvl>S.level){toast('Libera no nível '+c.lvl+'.');return;}S.seed=d.seed;tool='plantar';buildTools();closeSheet();toast('Semente de '+c.n.toLowerCase()+' escolhida. Toque nos canteiros vazios para plantar ('+(c.cash?c.cash+' cash':c.cost+' moedas')+' cada).');return;}
   if(d.animal){const k=d.animal,a=ANIMALS[k];if(a.lvl>S.level){toast('Libera no nível '+a.lvl+'.');return;}
-    const have=S.home.animals.filter(x=>x.type===k).length,lim=maxAnimals(k,S.level);if(have>=lim){toast('No nível '+S.level+' você pode ter até '+lim+' '+a.n.toLowerCase()+(lim>1?'s':'')+'. Suba de nível para liberar mais.');return;}
+    const have=S.home.animals.filter(x=>x.type===k).length,lim=maxAnimals(k,S.level);if(have>=lim){toast('No nível '+S.level+' você pode ter até '+lim+' '+(lim>1?plural(a.n.toLowerCase()):a.n.toLowerCase())+'. Suba de nível para liberar mais.');return;}
     const pt=penFor(k);const pens=S.home.pens.filter(p=>p.type===pt);
-    if(!pens.length){toast('Primeiro compre um '+PEN_TYPES[pt].n+' na aba Abrigos.');sheetTab='abrigos';[...$('sh-tabs').children].forEach(x=>x.classList.toggle('on',x.dataset.t==='abrigos'));renderShop('abrigos');return;}
-    const pen=pens.find(p=>penCount(S.home,p)<PEN_CAP);if(!pen){toast('Todos os '+PEN_TYPES[pt].n.toLowerCase()+'s estão cheios ('+PEN_CAP+' cada). Compre outro abrigo.');return;}
-    if(a.cash){if((S.cash||0)<a.cash){toast('Faltam cash. Compre um pacote na Loja de Cash.');return;}S.cash-=a.cash;}else{if(S.coins<a.cost){toast('Faltam moedas.');return;}S.coins-=a.cost;}const an=makeAnimal(k,pen);an.prod=0;S.home.animals.push(an);addXP(a.xp);puff(an.x,an.y-10);save();hud();closeSheet();
+    if(!pens.length){toast('Primeiro compre: '+PEN_TYPES[pt].n+' (aba Abrigos).');sheetTab='abrigos';[...$('sh-tabs').children].forEach(x=>x.classList.toggle('on',x.dataset.t==='abrigos'));renderShop('abrigos');return;}
+    const pen=pens.find(p=>penCount(S.home,p)<PEN_CAP);if(!pen){toast('Abrigos cheios ('+PEN_CAP+' animais em cada '+PEN_TYPES[pt].n.toLowerCase()+'). Compre outro abrigo.');return;}
+    if(a.cash){if((S.cash||0)<a.cash){toast('Falta cash. Compre um pacote na Loja de Cash.');return;}S.cash-=a.cash;}else{if(S.coins<a.cost){toast('Faltam moedas.');return;}S.coins-=a.cost;}const an=makeAnimal(k,pen);an.prod=0;S.home.animals.push(an);addXP(a.xp);puff(an.x,an.y-10);save();hud();closeSheet();
     const G=penGeo(pen);centerOn(G.x+G.w/2,G.y+G.h/2);toast(a.n+' chegou! ('+penCount(S.home,pen)+'/'+PEN_CAP+')');return;}
   if(d.pen){const P=PEN_TYPES[d.pen];if(P.lvl>S.level){toast('Libera no nível '+P.lvl+'.');return;}{const h=S.home.pens.filter(p=>p.type===d.pen).length,l=maxPens(d.pen,S.level);if(h>=l){toast('Limite de '+l+' '+P.n.toLowerCase()+' no nível '+S.level+'. Mais um libera em alguns níveis.');return;}}if(S.coins<P.cost){toast('Faltam moedas.');return;}startPlacing({kind:'pen',type:d.pen,w:P.w,h:P.h,cost:P.cost,name:P.n});return;}
   if(d.plot){if(S.home.plots.length>=maxPlots(S.level)){toast('Limite de '+maxPlots(S.level)+' canteiros no nível '+S.level+'. Suba de nível para liberar mais.');return;}if(S.coins<plotCost(S.home.plots.length)){toast('Faltam moedas.');return;}startPlacing({kind:'plot',type:'canteiro',w:1,h:1,name:'Canteiro',multi:true});return;}
-  if(d.deco){const D=DECO[d.deco];if(D.lvl>S.level){toast('Libera no nível '+D.lvl+'.');return;}if(D.cash?(S.cash||0)<D.cash:S.coins<D.cost){toast(D.cash?'Faltam cash.':'Faltam moedas.');return;}startPlacing({kind:'deco',type:d.deco,w:1,h:1,cost:D.cost,cashCost:D.cash,name:D.n,multi:!D.cash});return;}
+  if(d.deco){const D=DECO[d.deco];if(D.lvl>S.level){toast('Libera no nível '+D.lvl+'.');return;}if(D.cash?(S.cash||0)<D.cash:S.coins<D.cost){toast(D.cash?'Falta cash.':'Faltam moedas.');return;}startPlacing({kind:'deco',type:d.deco,w:1,h:1,cost:D.cost,cashCost:D.cash,name:D.n,multi:!D.cash});return;}
   if(d.pack){showPix(+d.pack);return;}
   if(d.pixok){const P=CASH_PACKS[+d.pixok];S.cash=(S.cash||0)+P.cash;hud();save();burstS(view.w/2,view.h/2);toast('Pagamento de teste aprovado: +'+P.cash+' cash!');renderCash();return;}
   if(d.pixback){renderCash();return;}
@@ -237,9 +243,9 @@ const brl=v=>'R$ '+v.toFixed(2).replace('.',',');
 function renderCash(){const b=$('sh-b');const lk=o=>'';
   b.innerHTML='<div class="cashtop"><img alt="" src="'+ICON.cash.url+'"><div><b>'+(S.cash||0)+' cash</b><span>Você ganha 10 cash a cada nível que sobe.</span></div></div>'+
   '<h3>Comprar cash com Pix</h3><div class="grid packs">'+CASH_PACKS.map((p,i)=>'<button class="item rare" data-pack="'+i+'">'+(p.tag?'<span class="ribbon">'+p.tag+'</span>':'')+'<img alt="" src="'+ICON.cash.url+'"><span class="nm">'+p.cash+' cash</span><span class="price brl">'+brl(p.brl)+'</span></button>').join('')+'</div>'+
-  '<h3>Sementes raras</h3><div class="grid">'+Object.entries(CROPS).filter(([,c])=>c.cash).map(([k,c])=>card('data-seed="'+k+'"',k,c.n,fmtT(c.t)+' · rende '+c.y+'<br>+'+c.xp+' XP · vende '+c.sell+'/un',c.cash,false,k===S.seed?' sel':'',true)).join('')+'</div>'+
-  '<h3>Animais exóticos</h3><div class="grid">'+Object.entries(ANIMALS).filter(([,a])=>a.cash).map(([k,a])=>{const P=PRODUCTS[a.prod];return card('data-animal="'+k+'"',k+'_a',a.n,'Mora no '+PEN_TYPES[penFor(k)].n.toLowerCase()+'<br>'+a.qty+' '+P.pl+' a cada '+fmtT(a.t)+' · '+P.sell+'/un',a.cash,false,'',true);}).join('')+'</div>'+
-  '<h3>Decoração rara</h3><div class="grid">'+Object.entries(DECO).filter(([,d])=>d.cash).map(([k,d])=>card('data-deco="'+k+'"','d_'+k,d.n,'Animada<br>+'+d.xp+' XP',d.cash,false,'',true)).join('')+'</div>';}
+  '<h3>Sementes raras</h3><div class="grid">'+Object.entries(CROPS).filter(([,c])=>c.cash).map(([k,c])=>card('data-seed="'+k+'"',k,c.n,ln(fmtT(c.t))+ln('rende '+c.y,'+'+c.xp+' XP')+ln('vende '+c.sell+'/un'),c.cash,false,k===S.seed?' sel':'',true)).join('')+'</div>'+
+  '<h3>Animais exóticos</h3><div class="grid">'+Object.entries(ANIMALS).filter(([,a])=>a.cash).map(([k,a])=>{const P=PRODUCTS[a.prod];return card('data-animal="'+k+'"',k+'_a',a.n,ln('Mora no '+PEN_TYPES[penFor(k)].n.toLowerCase())+ln(a.qty+' '+P.pl,'a cada '+fmtT(a.t))+ln('vende '+P.sell+'/'+P.u),a.cash,false,'',true);}).join('')+'</div>'+
+  '<h3>Decoração rara</h3><div class="grid">'+Object.entries(DECO).filter(([,d])=>d.cash).map(([k,d])=>card('data-deco="'+k+'"','d_'+k,d.n,ln('Animada')+ln('+'+d.xp+' XP'),d.cash,false,'',true)).join('')+'</div>';}
 function pixCode(p){const id='FZD'+Date.now().toString(36).toUpperCase();return '00020126580014BR.GOV.BCB.PIX0136TESTE-FAZENDINHA-NAO-PAGAR520400005303986540'+p.brl.toFixed(2).length+p.brl.toFixed(2)+'5802BR5911FAZENDINHA6009SAO PAULO62'+String(id.length+4).padStart(2,'0')+'05'+String(id.length).padStart(2,'0')+id+'6304TEST';}
 function showPix(i){const p=CASH_PACKS[i],b=$('sh-b');const code=pixCode(p);
   b.innerHTML='<div class="pix"><p class="testnote"><b>Modo de teste.</b> Nenhum valor é cobrado. Para receber de verdade, o jogo precisa ser ligado a um provedor de Pix num servidor.</p>'+
@@ -265,30 +271,64 @@ function start(data){
 }
 window.claude?.hot?.snapshot?.(()=>({S}));
 // ---- tela de abertura ----
+// vitrine 3D da tela de abertura: uma ilhinha com os modelos do Farm Pack e alguns bichos
+function spVitrine(cv){try{
+  const rd=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true});rd.setClearColor(0,0);rd.shadowMap.enabled=true;rd.shadowMap.type=THREE.PCFSoftShadowMap;
+  const sc=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
+  sc.add(new THREE.HemisphereLight('#ffffff','#6fae4a',.66));const sun=new THREE.DirectionalLight('#fff1d0',.8);sun.position.set(-6,14,4);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+  Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:40});sun.shadow.bias=-.001;sc.add(sun);
+  const isl=new THREE.Group();sc.add(isl);const put=(m,px,pz,ry)=>{m.position.set(px,0,pz);if(ry)m.rotation.y=ry;isl.add(m);return m;};
+  const top=sh(new THREE.Mesh(new THREE.CylinderGeometry(5.3,5.3,.25,40),M('#79c457')));top.position.y=-.125;isl.add(top);
+  const side=new THREE.Mesh(new THREE.CylinderGeometry(5.3,4.3,1.1,40),M('#9a6a3a'));side.position.y=-.8;isl.add(side);
+  put(fp('celeiro',.52),-2.3,-1.7);put(fp('silo',.36),-.4,-3.1);put(fp('casa',.62),1.7,-2.1);
+  const ms=1.5/fpSize('moinho').x,mo=put(grp(fp('moinho',ms)),4.0,-.7,-.7),pv=new THREE.Group(),pp=FP_META.moinho_pas.piv;pv.position.set(pp[0]*ms,pp[1]*ms,pp[2]*ms);pv.add(fp('moinho_pas',ms));mo.add(pv);
+  put(fpH('macieira',1.9),-4.1,.8,1);put(fpH('pinheiro',2),-3.4,-3.2);put(fpH('laranjeira',2),3.8,-2.9);put(fpH('betula',2),.9,-4.1);
+  put(fp('feno',.45),-3.9,2.5,.5);put(fp('barril',.5),-.9,-1.6);put(fp('poste',.55),.8,3.3);
+  ['c_milho','c_girassol','c_abobora','c_tomate','c_alface','c_cenoura'].forEach((k,n)=>{const px=-1.6+(n%3)*1.05,pz=.4+Math.floor(n/3)*1.05;
+    put(at(box(.96,.1,.96,'#a8692f'),0,.05,0),px,pz);const z=fpSize(k),c=fp(k,.92/Math.max(z.x,z.z));c.position.set(px,.1,pz);isl.add(c);});
+  fpFence(isl,-3.2,3.9,.2,3.9,'cerca');fpFence(isl,1.4,3.9,3.6,3.9,'cerca');
+  const bichos=[[{type:'vaca'},2.3,1.9,-.6],[{type:'ovelha'},3.3,2.7,-1.2],[{type:'galinha',v:0},1.2,2.7,-.3],[{type:'galinha',v:1},-2.6,2.9,1]].map(([a,px,pz,ry])=>{const m=put(mkAnimal3(a),px,pz,ry);m.scale.setScalar(1.25);return m;});
+  const dog=put(mkDog3(),-2.4,1.6,-.4);dog.scale.setScalar(1.3);
+  let on=true;
+  const fit=()=>{const r=Math.min(2,devicePixelRatio||1),w=cv.clientWidth,h=cv.clientHeight;rd.setPixelRatio(r);rd.setSize(w,h,false);const a=w/h,fh=Math.max(11.8/a,16);
+    cam.left=-fh*a/2;cam.right=fh*a/2;cam.top=fh/2;cam.bottom=-fh/2;cam.position.set(12,10,12);cam.lookAt(0,.6,0);
+    // empurra a ilha um pouco para baixo, entre o título e a barra
+    cam.position.y+=fh*.03;cam.updateProjectionMatrix();};fit();addEventListener('resize',fit);
+  return{draw(t){if(!on)return;isl.rotation.y=Math.sin(t*.25)*.22;pv.rotation.z=t*1.6;
+      bichos.forEach((m,n)=>{const P=m.userData.P;if(P.head&&P.h0){const d=n>1?Math.max(0,Math.sin(t*3+n*2)):0;P.head.position.y=P.h0.y-d*.18+Math.sin(t*2+n)*.01;}if(P.tail)P.tail.rotation.x=Math.sin(t*3+n)*.3;});
+      const P=dog.userData.P;if(P.tail)P.tail.rotation.x=Math.sin(t*14)*.6;rd.render(sc,cam);},
+    stop(){on=false;removeEventListener('resize',fit);rd.dispose();try{rd.forceContextLoss();}catch(e){}}};
+}catch(e){console.warn('vitrine 3D',e);return null;}}
 function splash(){
-  const el=$('splash'),sc=$('splashcv'),x=sc.getContext('2d'),bar=$('sp-bar'),lab=$('sp-lab');let t0=performance.now(),run=true,prog=0,shown=0;
+  const el=$('splash'),sc=$('splashcv'),x=sc.getContext('2d'),bar=$('sp-bar'),lab=$('sp-lab');let t0=performance.now(),run=true,prog=0,shown=0,ready=false,v3=null;
   const fit=()=>{const r=Math.min(2,devicePixelRatio||1);sc.width=sc.clientWidth*r;sc.height=sc.clientHeight*r;};fit();addEventListener('resize',fit);
   const hen={type:'galinha',x:0,y:0,dir:1,state:'walk',phase:0,v:0},hen2={type:'galinha',x:0,y:0,dir:-1,state:'peck',phase:0,v:1},cow={type:'vaca',x:0,y:0,dir:1,state:'graze',phase:0},dog={x:0,y:0,dir:-1,state:'walk',phase:0};
   function draw(now){if(!run)return;const t=(now-t0)/1000,r=sc.width/sc.clientWidth,w=sc.clientWidth,h=sc.clientHeight;x.setTransform(r,0,0,r,0,0);
     const sky=x.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#8fd3f0');sky.addColorStop(.55,'#d6f0e0');sky.addColorStop(1,'#f6e7b8');x.fillStyle=sky;x.fillRect(0,0,w,h);
     const sy=h*.34;x.save();x.globalAlpha=.25;circ(x,w*.8,sy,70+Math.sin(t*2)*4,'#fff6a8');x.restore();circ(x,w*.8,sy,42,'#f6c445');
     for(let i=0;i<3;i++){const cx=((t*12*(i+1)+i*260)%(w+200))-100,cy=h*(.1+i*.08);for(const [dx,dy,rr2] of [[0,0,18],[18,-6,22],[38,0,17]])circ(x,cx+dx,cy+dy,rr2,'rgba(255,255,255,.9)');}
-    const hill=(yb,amp,col,off)=>{x.beginPath();x.moveTo(0,h);for(let i=0;i<=w;i+=8)x.lineTo(i,yb+Math.sin(i/120+off)*amp);x.lineTo(w,h);x.closePath();x.fillStyle=col;x.fill();};
+    const hill=(yb,amp,col,off)=>{x.beginPath();x.moveTo(0,h);for(let i=0;i<=w+8;i+=8)x.lineTo(i,yb+Math.sin(i/120+off)*amp);x.lineTo(w,h);x.closePath();x.fillStyle=col;x.fill();};
     hill(h*.58,16,'#9ccf6a',1);hill(h*.66,12,'#7cbf56',3);
+    if(v3){hill(h*.74,8,'#5f9e43',5);v3.draw(t);}else{
     x.save();x.translate(w*.04-BARN.x*.5,h*.63-(BARN.y+BARN.h)*.5);x.scale(.5,.5);drawBarn(x);x.restore();
     for(let i=0;i<6;i++){x.save();x.translate(w*.56+i*20,h*.68);drawCrop(x,0,0,['girassol','milho','girassol','tomate','girassol','milho'][i],1,t,0);x.restore();}
     hill(h*.74,8,'#5f9e43',5);
     x.save();x.translate(0,0);hen.x=((t*40)%(w+80))-40;hen.y=h*.8;hen.phase=t;hen2.x=w*.72;hen2.y=h*.84;cow.x=w*.34;cow.y=h*.83;dog.x=w-((t*55)%(w+80))+40;dog.y=h*.9;dog.phase=t;
     for(const a of [cow,hen2,hen]){x.save();x.translate(a.x,a.y);x.scale(1.4,1.4);x.translate(-a.x,-a.y);drawAnimal(x,a,t);x.restore();}
-    x.save();x.translate(dog.x,dog.y);x.scale(1.4,1.4);x.translate(-dog.x,-dog.y);drawDog(x,dog,t);x.restore();x.restore();
-    shown+=(prog-shown)*.08;bar.style.width=(shown*100).toFixed(1)+'%';
+    x.save();x.translate(dog.x,dog.y);x.scale(1.4,1.4);x.translate(-dog.x,-dog.y);drawDog(x,dog,t);x.restore();x.restore();}
+    // a barra acompanha o carregamento de verdade e só mostra "Jogar" quando chega no fim
+    const dt=Math.min(.25,t-(draw.lt||t));draw.lt=t;shown+=(prog-shown)*Math.min(1,dt*9);if(prog>=1&&shown>.985&&!ready){shown=1;ready=true;$('sp-go').hidden=false;}
+    bar.style.width=(shown*100).toFixed(1)+'%';
     requestAnimationFrame(draw);}
   requestAnimationFrame(draw);
-  const steps=[['Afiando as enxadas…',()=>makeIcons()],['Preparando a terra…',()=>buildBG()],['Montando a fazenda em 3D…',()=>initThree()],['Acordando os bichos…',()=>{}],['Regando as plantas…',()=>{}],['Chamando os vizinhos…',()=>{}]];
-  let i=0;const next=()=>{if(i>=steps.length){prog=1;lab.textContent='Tudo pronto!';setTimeout(()=>{$('sp-go').hidden=false;try{$('sp-go').focus();}catch(e){}},350);return;}
-    lab.textContent=steps[i][0];steps[i][1]();i++;prog=i/steps.length*.95;setTimeout(next,380+Math.random()*260);};
-  setTimeout(next,300);
-  $('sp-go').onclick=()=>{el.classList.add('out');setTimeout(()=>{run=false;el.hidden=true;},600);};
+  const steps=[['Afiando as enxadas…',()=>makeIcons()],['Preparando a terra…',()=>buildBG()],['Abrindo o pacote de modelos…',()=>typeof fpLoad==='function'?fpLoad():0],
+    ['Montando a fazenda em 3D…',()=>initThree()],['Acordando os bichos…',()=>{if(typeof FP!=='undefined'&&FP.ok)v3=spVitrine($('sp3d'));}],['Chamando os vizinhos…',()=>{}]];
+  let i=0;const next=async()=>{if(i>=steps.length){prog=1;lab.textContent='Tudo pronto!';return;}
+    lab.textContent=steps[i][0];await new Promise(r=>setTimeout(r,60));
+    try{await steps[i][1]();}catch(e){console.warn(e);}
+    i++;prog=i/steps.length*.96;setTimeout(next,120+Math.random()*100);};
+  setTimeout(next,200);
+  $('sp-go').onclick=()=>{el.classList.add('out');setTimeout(()=>{run=false;el.hidden=true;if(v3)v3.stop();},600);};
 }
 const boot=d=>{const go=()=>{splash();const wait=()=>{if(ICON.coin&&bgCanvas&&(R3||typeof THREE==='undefined'))start(d);else setTimeout(wait,50);};wait();};if(document.fonts&&document.fonts.ready){Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1200))]).then(go);}else go();};
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
