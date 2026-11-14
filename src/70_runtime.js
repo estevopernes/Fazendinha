@@ -174,7 +174,7 @@ function frame(now){
   fxs=fxs.filter(f=>(f.t+=dt)<1.4);
   parts=parts.filter(p=>{p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=300*dt;return p.t<1.2;});
   if(shake>0)shake=Math.max(0,shake-dt*30);
-  render(farm);
+  if(!spCover)render(farm); // atrás da abertura não precisa desenhar
   requestAnimationFrame(frame);
 }
 function render2D(farm){
