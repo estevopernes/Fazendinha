@@ -94,6 +94,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--water);outline-
 h3{font-family:var(--font-display);font-weight:600;font-size:17px;margin:14px 0 4px}
 .badge{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:999px;background:var(--cream-2);border:1px solid var(--wood);margin-left:4px;vertical-align:middle}
 .badge.dog{background:#f3d3a6}
+.splash #sp3d{opacity:0;transition:opacity .9s}
+.splash.cine #sp3d{opacity:1}
+.splash.cine .sp-ui{opacity:0;transform:translateY(-24px) scale(.92);transition:opacity .8s,transform .8s cubic-bezier(.2,1.4,.4,1)}
+.splash.cine.titled .sp-ui{opacity:1;transform:none}
+.splash.cine .sp-title{font-size:clamp(50px,14vw,96px)}
+.sp-skip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:max(14px,env(safe-area-inset-right,0px));font:800 15px var(--font-body);color:#fff;background:rgba(40,28,20,.42);border:2px solid rgba(255,247,227,.75);border-radius:999px;padding:7px 16px;cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.sp-skip:active{transform:scale(.95)}
+.splash.cine .sp-load{transition:opacity .5s}
+.splash.cine .sp-load.done{opacity:0}
+.splash.cine .sp-go{background:linear-gradient(#5fd35a,#2e9e36);color:#fff;border-color:#1f6b24;box-shadow:0 5px 0 #1f6b24,0 10px 24px rgba(0,0,0,.25);text-shadow:0 2px 0 #1f6b24;font-size:28px;white-space:nowrap;padding:12px 54px;bottom:calc(env(safe-area-inset-bottom,0px) + 9vh)}
 @media (prefers-reduced-motion: reduce){.sheet{animation:none}.toast{transition:none}}
 .placebar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 90px);z-index:6;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;max-width:calc(100% - 24px)}
 .pl-t{font-family:var(--font-display);font-weight:600;font-size:15px;display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden}
@@ -150,8 +160,9 @@ h3{font-family:var(--font-display);font-weight:600;font-size:17px;margin:14px 0 
     <h1 class="sp-title">Fazendinha</h1>
     <p class="sp-sub">Plante, crie seus bichos e visite os vizinhos</p>
   </div>
-  <div class="sp-load"><div class="sp-track"><i id="sp-bar"></i></div><span id="sp-lab">Carregando…</span></div>
-  <button class="btn sp-go" id="sp-go" hidden>Jogar</button>
+  <div class="sp-load" id="sp-load"><div class="sp-track"><i id="sp-bar"></i></div><span id="sp-lab">Carregando…</span></div>
+  <button class="btn sp-go" id="sp-go" hidden><span aria-hidden="true">▶</span> JOGAR</button>
+  <button class="sp-skip" id="sp-skip" hidden aria-label="Pular a apresentação">Pular ⏭</button>
 </div>
 <div class="hud">
   <div class="board who" id="who" role="button" tabindex="0" aria-label="Perfil">
